@@ -6,9 +6,10 @@ from aws_cdk import aws_elasticloadbalancingv2 as elbv2
 from aws_cdk.core import CfnTag, Construct, Fn, NestedStack, Stack
 
 from pcluster.config.cluster_config import LoginNodesPool, SharedStorageType, SlurmClusterConfig
-from pcluster.constants import PCLUSTER_LOGIN_NODES_POOL_NAME_TAG
+from pcluster.constants import NODE_BOOTSTRAP_TIMEOUT, OS_MAPPING, PCLUSTER_LOGIN_NODES_POOL_NAME_TAG
 from pcluster.templates.cdk_builder_utils import (
     CdkLaunchTemplateBuilder,
+    get_common_user_data_env,
     get_default_instance_tags,
     get_default_volume_tags,
     get_login_nodes_security_groups_full,
@@ -16,7 +17,7 @@ from pcluster.templates.cdk_builder_utils import (
     get_user_data_content,
     to_comma_separated_string,
 )
-from pcluster.utils import get_http_tokens_setting
+from pcluster.utils import get_attr, get_http_tokens_setting
 
 
 class Pool(Construct):
@@ -87,19 +88,19 @@ class Pool(Construct):
                 ),
                 user_data=Fn.base64(
                     Fn.sub(
-                        get_user_data_content("../resources/compute_node/user_data.sh"),
+                        get_user_data_content("../resources/login_node/user_data.sh"),
                         {
                             **{
-                                "EnableEfa": "efa" if compute_resource.efa and compute_resource.efa.enabled else "NONE",
+                                # "EnableEfa": "efa" if compute_resource.efa and compute_resource.efa.enabled else "NONE",
                                 "RAIDSharedDir": to_comma_separated_string(
                                     self._shared_storage_mount_dirs[SharedStorageType.RAID]
                                 ),
                                 "RAIDType": to_comma_separated_string(
                                     self._shared_storage_attributes[SharedStorageType.RAID]["Type"]
                                 ),
-                                "DisableMultiThreadingManually": "true"
-                                if compute_resource.disable_simultaneous_multithreading_manually
-                                else "false",
+                                "DisableMultiThreadingManually": "false",
+                                # if compute_resource.disable_simultaneous_multithreading_manually
+                                # else "false",
                                 "BaseOS": self._config.image.os,
                                 "EFSIds": get_shared_storage_ids_by_type(
                                     self._shared_storage_infos, SharedStorageType.EFS
@@ -134,10 +135,10 @@ class Pool(Construct):
                                     self._shared_storage_mount_dirs[SharedStorageType.FSX]
                                 ),
                                 "Scheduler": self._config.scheduling.scheduler,
-                                "EphemeralDir": queue.compute_settings.local_storage.ephemeral_volume.mount_dir
-                                if isinstance(queue, SlurmQueue)
-                                   and queue.compute_settings.local_storage.ephemeral_volume
-                                else DEFAULT_EPHEMERAL_DIR,
+                                # "EphemeralDir": queue.compute_settings.local_storage.ephemeral_volume.mount_dir
+                                # if isinstance(queue, SlurmQueue)
+                                #    and queue.compute_settings.local_storage.ephemeral_volume
+                                # else DEFAULT_EPHEMERAL_DIR,
                                 "EbsSharedDirs": to_comma_separated_string(
                                     self._shared_storage_mount_dirs[SharedStorageType.EBS]
                                 ),
@@ -156,11 +157,11 @@ class Pool(Construct):
                                 "IntelHPCPlatform": "true" if self._config.is_intel_hpc_platform_enabled else "false",
                                 "CWLoggingEnabled": "true" if self._config.is_cw_logging_enabled else "false",
                                 "LogRotationEnabled": "true" if self._config.is_log_rotation_enabled else "false",
-                                "QueueName": queue.name,
-                                "ComputeResourceName": compute_resource.name,
-                                "EnableEfaGdr": "compute"
-                                if compute_resource.efa and compute_resource.efa.gdr_support
-                                else "NONE",
+                                # "QueueName": queue.name,
+                                # "ComputeResourceName": compute_resource.name,
+                                # "EnableEfaGdr": "compute"
+                                # if compute_resource.efa and compute_resource.efa.gdr_support
+                                # else "NONE",
                                 "CustomNodePackage": self._config.custom_node_package or "",
                                 "CustomAwsBatchCliPackage": self._config.custom_aws_batch_cli_package or "",
                                 "ExtraJson": self._config.extra_chef_attributes,
@@ -184,7 +185,7 @@ class Pool(Construct):
                                     )
                                 ),
                             },
-                            **get_common_user_data_env(queue, self._config),
+                            # **get_common_user_data_env(queue, self._config),
                         },
                     )
                 ),
