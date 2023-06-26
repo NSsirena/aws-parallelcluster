@@ -39,6 +39,18 @@ fi
 Content-Type: text/cloud-config; charset=us-ascii
 MIME-Version: 1.0
 
+bootcmd:
+  # Disable multithreading using logic from https://aws.amazon.com/blogs/compute/disabling-intel-hyper-threading-technology-on-amazon-linux/
+  # thread_siblings_list contains a comma (,) or dash (-) separated list of CPU hardware threads within the same core as cpu
+  # e.g. 0-1 or 0,1
+  # cat /sys/devices/system/cpu/cpu*/topology/thread_siblings_list
+  #     | tr '-' ','       # convert hyphen (-) to comma (,), to account that some kernels and CPU architectures use a hyphen instead of a comma
+  #     | cut -s -d, -f2-  # split over comma (,) and take the right part
+  #     | tr ',' '\n'      # convert remaining comma (,) into new lines
+  #     | sort -un         # sort and unique
+  - if [ "${DisableMultiThreadingManually}" = "true" ]; then for cpunum in $(cat /sys/devices/system/cpu/cpu*/topology/thread_siblings_list | tr '-' ',' | cut -s -d, -f2- | tr ',' '\n' | sort -un); do echo 0 > /sys/devices/system/cpu/cpu$cpunum/online; done; fi
+
+
 package_update: false
 package_upgrade: false
 repo_upgrade: none
@@ -53,47 +65,42 @@ write_files:
     content: |
       {
         "cluster": {
-          "cluster_name": "${ClusterName}",
-          "stack_name": "${AWS::StackName}",
-          "stack_arn": "${AWS::StackId}",
-          "enable_efa": "${EnableEfa}",
-          "raid_shared_dir": "${RAIDSharedDir}",
-          "raid_type": "${RAIDType}",
           "base_os": "${BaseOS}",
-          "region": "${AWS::Region}",
+          "cluster_name": "${ClusterName}",
+          "cluster_user": "${OSUser}",
+          "custom_node_package": "${CustomNodePackage}",
+          "custom_awsbatchcli_package": "${CustomAwsBatchCliPackage}",
+          "cw_logging_enabled": "${CWLoggingEnabled}",
+          "dns_domain": "${ClusterDNSDomain}",
+          "directory_service": {
+            "enabled": "${DirectoryServiceEnabled}"
+          },
+          "ebs_shared_dirs": "${EbsSharedDirs}",
           "efs_fs_ids": "${EFSIds}",
           "efs_shared_dirs": "${EFSSharedDirs}",
           "efs_encryption_in_transits": "${EFSEncryptionInTransits}",
           "efs_iam_authorizations": "${EFSIamAuthorizations}",
+          "enable_intel_hpc_platform": "${IntelHPCPlatform}",
+          "ephemeral_dir": "${EphemeralDir}",
           "fsx_fs_ids": "${FSXIds}",
           "fsx_mount_names": "${FSXMountNames}",
           "fsx_dns_names": "${FSXDNSNames}",
           "fsx_volume_junction_paths": "${FSXVolumeJunctionPaths}",
           "fsx_fs_types": "${FSXFileSystemTypes}",
           "fsx_shared_dirs": "${FSXSharedDirs}",
-          "scheduler": "${Scheduler}",
-          "ephemeral_dir": "${EphemeralDir}",
-          "ebs_shared_dirs": "${EbsSharedDirs}",
-          "proxy": "${ProxyServer}",
-          "slurm_ddb_table": "${SlurmDynamoDBTable}",
-          "log_group_name": "${LogGroupName}",
-          "dns_domain": "${ClusterDNSDomain}",
-          "hosted_zone": "${ClusterHostedZone}",
-          "node_type": "LoginNode",
-          "cluster_user": "${OSUser}",
-          "enable_intel_hpc_platform": "${IntelHPCPlatform}",
-          "cw_logging_enabled": "${CWLoggingEnabled}",
-          "log_rotation_enabled": "${LogRotationEnabled}",
-          "scheduler_queue_name": "${QueueName}",
-          "scheduler_compute_resource_name": "${ComputeResourceName}",
-          "enable_efa_gdr": "${EnableEfaGdr}",
-          "custom_node_package": "${CustomNodePackage}",
-          "custom_awsbatchcli_package": "${CustomAwsBatchCliPackage}",
-          "use_private_hostname": "${UsePrivateHostname}",
           "head_node_private_ip": "${HeadNodePrivateIp}",
-          "directory_service": {
-            "enabled": "${DirectoryServiceEnabled}"
-          }
+          "hosted_zone": "${ClusterHostedZone}",
+          "log_group_name": "${LogGroupName}",
+          "log_rotation_enabled": "${LogRotationEnabled}",
+          "node_type": "LoginNode",
+          "proxy": "${ProxyServer}",
+          "raid_shared_dir": "${RAIDSharedDir}",
+          "raid_type": "${RAIDType}",
+          "region": "${AWS::Region}",
+          "scheduler": "${Scheduler}",
+          "stack_name": "${AWS::StackName}",
+          "stack_arn": "${AWS::StackId}",
+          "use_private_hostname": "${UsePrivateHostname}",
         }
       }
   - path: /etc/chef/client.rb

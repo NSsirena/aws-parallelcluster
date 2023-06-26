@@ -91,7 +91,6 @@ class Pool(Construct):
                         get_user_data_content("../resources/login_node/user_data.sh"),
                         {
                             **{
-                                # "EnableEfa": "efa" if compute_resource.efa and compute_resource.efa.enabled else "NONE",
                                 "RAIDSharedDir": to_comma_separated_string(
                                     self._shared_storage_mount_dirs[SharedStorageType.RAID]
                                 ),
@@ -99,8 +98,6 @@ class Pool(Construct):
                                     self._shared_storage_attributes[SharedStorageType.RAID]["Type"]
                                 ),
                                 "DisableMultiThreadingManually": "false",
-                                # if compute_resource.disable_simultaneous_multithreading_manually
-                                # else "false",
                                 "BaseOS": self._config.image.os,
                                 "EFSIds": get_shared_storage_ids_by_type(
                                     self._shared_storage_infos, SharedStorageType.EFS
@@ -157,11 +154,6 @@ class Pool(Construct):
                                 "IntelHPCPlatform": "true" if self._config.is_intel_hpc_platform_enabled else "false",
                                 "CWLoggingEnabled": "true" if self._config.is_cw_logging_enabled else "false",
                                 "LogRotationEnabled": "true" if self._config.is_log_rotation_enabled else "false",
-                                # "QueueName": queue.name,
-                                # "ComputeResourceName": compute_resource.name,
-                                # "EnableEfaGdr": "compute"
-                                # if compute_resource.efa and compute_resource.efa.gdr_support
-                                # else "NONE",
                                 "CustomNodePackage": self._config.custom_node_package or "",
                                 "CustomAwsBatchCliPackage": self._config.custom_aws_batch_cli_package or "",
                                 "ExtraJson": self._config.extra_chef_attributes,
@@ -177,15 +169,8 @@ class Pool(Construct):
                                         NODE_BOOTSTRAP_TIMEOUT,
                                     )
                                 ),
-                                "ComputeStartupTimeMetricEnabled": str(
-                                    get_attr(
-                                        self._config,
-                                        "dev_settings.compute_startup_time_metric_enabled",
-                                        default=False,
-                                    )
-                                ),
                             },
-                            # **get_common_user_data_env(queue, self._config),
+                            **get_common_user_data_env(self._pool, self._config),
                         },
                     )
                 ),
