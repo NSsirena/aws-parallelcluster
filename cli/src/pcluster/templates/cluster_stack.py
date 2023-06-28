@@ -258,7 +258,7 @@ class ClusterCdkStack:
             self.head_node_instance.add_depends_on(self.scheduler_resources.cleanup_route53_custom_resource)
 
         # Initialize Login Nodes
-        self._add_login_nodes_resources()
+        self._add_login_nodes_resources(self._head_eni)
 
         # AWS Batch related resources
         if self._condition_is_batch():
@@ -397,7 +397,7 @@ class ClusterCdkStack:
                 slurm_construct=self.scheduler_resources,
             )
 
-    def _add_login_nodes_resources(self):
+    def _add_login_nodes_resources(self, head_eni):
         """Add Login Nodes related resources."""
         self.login_nodes_stack = None
         if self._condition_is_slurm() and self.config.login_nodes:
@@ -409,6 +409,7 @@ class ClusterCdkStack:
                 shared_storage_mount_dirs=self.shared_storage_mount_dirs,
                 shared_storage_attributes=self.shared_storage_attributes,
                 login_security_group=self._login_security_group,
+                head_eni=head_eni
             )
             # Add dependency on the Head Node construct
             self.login_nodes_stack.node.add_dependency(self.head_node_instance)

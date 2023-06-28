@@ -6,7 +6,12 @@ from aws_cdk import aws_elasticloadbalancingv2 as elbv2
 from aws_cdk.core import CfnTag, Construct, Fn, NestedStack, Stack
 
 from pcluster.config.cluster_config import LoginNodesPool, SharedStorageType, SlurmClusterConfig
-from pcluster.constants import NODE_BOOTSTRAP_TIMEOUT, OS_MAPPING, PCLUSTER_LOGIN_NODES_POOL_NAME_TAG
+from pcluster.constants import (
+    DEFAULT_EPHEMERAL_DIR,
+    NODE_BOOTSTRAP_TIMEOUT,
+    OS_MAPPING,
+    PCLUSTER_LOGIN_NODES_POOL_NAME_TAG,
+)
 from pcluster.templates.cdk_builder_utils import (
     CdkLaunchTemplateBuilder,
     get_common_user_data_env,
@@ -132,25 +137,12 @@ class Pool(Construct):
                                     self._shared_storage_mount_dirs[SharedStorageType.FSX]
                                 ),
                                 "Scheduler": self._config.scheduling.scheduler,
-                                # "EphemeralDir": queue.compute_settings.local_storage.ephemeral_volume.mount_dir
-                                # if isinstance(queue, SlurmQueue)
-                                #    and queue.compute_settings.local_storage.ephemeral_volume
-                                # else DEFAULT_EPHEMERAL_DIR,
+                                "EphemeralDir": DEFAULT_EPHEMERAL_DIR,
                                 "EbsSharedDirs": to_comma_separated_string(
                                     self._shared_storage_mount_dirs[SharedStorageType.EBS]
                                 ),
-                                "ClusterDNSDomain": str(self._cluster_hosted_zone.name)
-                                if self._cluster_hosted_zone
-                                else "",
-                                "ClusterHostedZone": str(self._cluster_hosted_zone.ref)
-                                if self._cluster_hosted_zone
-                                else "",
                                 "OSUser": OS_MAPPING[self._config.image.os]["user"],
                                 "ClusterName": self.stack_name,
-                                "SlurmDynamoDBTable": self._dynamodb_table.ref if self._dynamodb_table else "NONE",
-                                "LogGroupName": self._log_group.log_group_name
-                                if self._config.monitoring.logs.cloud_watch.enabled
-                                else "NONE",
                                 "IntelHPCPlatform": "true" if self._config.is_intel_hpc_platform_enabled else "false",
                                 "CWLoggingEnabled": "true" if self._config.is_cw_logging_enabled else "false",
                                 "LogRotationEnabled": "true" if self._config.is_log_rotation_enabled else "false",
@@ -160,8 +152,8 @@ class Pool(Construct):
                                 "UsePrivateHostname": str(
                                     get_attr(self._config, "scheduling.settings.dns.use_ec2_hostnames", default=False)
                                 ).lower(),
-                                "HeadNodePrivateIp": self._head_eni.attr_primary_private_ip_address,
                                 "DirectoryServiceEnabled": str(self._config.directory_service is not None).lower(),
+                                "HeadNodePrivateIp": self._head_eni.attr_primary_private_ip_address,
                                 "Timeout": str(
                                     get_attr(
                                         self._config,
@@ -259,6 +251,7 @@ class LoginNodesStack(NestedStack):
         shared_storage_mount_dirs: Dict,
         shared_storage_attributes: Dict,
         login_security_group,
+        head_eni,
     ):
         super().__init__(scope, id)
         self._login_nodes = cluster_config.login_nodes
@@ -268,6 +261,7 @@ class LoginNodesStack(NestedStack):
         self._shared_storage_infos = shared_storage_infos
         self._shared_storage_mount_dirs = shared_storage_mount_dirs
         self._shared_storage_attributes = shared_storage_attributes
+        self._head_eni = head_eni
 
         self._add_resources()
 
