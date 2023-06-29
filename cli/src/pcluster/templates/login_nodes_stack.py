@@ -24,7 +24,6 @@ from pcluster.templates.cdk_builder_utils import (
 )
 from pcluster.utils import get_attr, get_http_tokens_setting
 
-
 class Pool(Construct):
     """Construct defining Login Nodes Pool specific resources."""
 
@@ -39,6 +38,7 @@ class Pool(Construct):
         shared_storage_attributes: Dict,
         login_security_group,
         stack_name,
+        head_eni,
     ):
         super().__init__(scope, id)
         self._pool = pool
@@ -49,7 +49,7 @@ class Pool(Construct):
         self._shared_storage_attributes = shared_storage_attributes
         self._login_security_group = login_security_group
         self.stack_name = stack_name
-
+        self._head_eni = head_eni
         self._add_resources()
 
     def _add_resources(self):
@@ -261,16 +261,15 @@ class LoginNodesStack(NestedStack):
         self._shared_storage_infos = shared_storage_infos
         self._shared_storage_mount_dirs = shared_storage_mount_dirs
         self._shared_storage_attributes = shared_storage_attributes
-        self._head_eni = head_eni
 
-        self._add_resources()
+        self._add_resources(head_eni)
 
     @property
     def stack_name(self):
         """Name of the CFN stack."""
         return Stack.of(self.nested_stack_parent).stack_name
 
-    def _add_resources(self):
+    def _add_resources(self, head_eni):
         self.pools = {}
         for pool in self._login_nodes.pools:
             pool_construct = Pool(
@@ -283,5 +282,6 @@ class LoginNodesStack(NestedStack):
                 self._shared_storage_attributes,
                 self._login_security_group,
                 self.stack_name,
+                head_eni,
             )
             self.pools[pool.name] = pool_construct

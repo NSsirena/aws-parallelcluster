@@ -70,7 +70,7 @@ write_files:
           "cluster_user": "${OSUser}",
           "custom_node_package": "${CustomNodePackage}",
           "custom_awsbatchcli_package": "${CustomAwsBatchCliPackage}",
-          "cw_logging_enabled": "${CWLoggingEnabled}",
+          "cw_logging_enabled": "false",
           "directory_service": {
             "enabled": "${DirectoryServiceEnabled}"
           },
@@ -97,7 +97,7 @@ write_files:
           "scheduler": "${Scheduler}",
           "stack_name": "${AWS::StackName}",
           "stack_arn": "${AWS::StackId}",
-          "use_private_hostname": "${UsePrivateHostname}",
+          "use_private_hostname": "${UsePrivateHostname}"
         }
       }
   - path: /etc/chef/client.rb
@@ -195,9 +195,9 @@ write_files:
       {
         pushd /etc/chef &&
         cinc-client --local-mode --config /etc/chef/client.rb --log_level info --force-formatter --no-color --chef-zero-port 8889 --json-attributes /etc/chef/dna.json --override-runlist aws-parallelcluster-entrypoints::init &&
-        /opt/parallelcluster/scripts/fetch_and_run -preinstall &&
+        /opt/parallelcluster/scripts/fetch_and_run -preinstall -c /opt/parallelcluster/shared_login_nodes/cluster-config.yaml &&
         cinc-client --local-mode --config /etc/chef/client.rb --log_level info --force-formatter --no-color --chef-zero-port 8889 --json-attributes /etc/chef/dna.json --override-runlist aws-parallelcluster-entrypoints::config &&
-        /opt/parallelcluster/scripts/fetch_and_run -postinstall &&
+        /opt/parallelcluster/scripts/fetch_and_run -postinstall -c /opt/parallelcluster/shared_login_nodes/cluster-config.yaml &&
         cinc-client --local-mode --config /etc/chef/client.rb --log_level info --force-formatter --no-color --chef-zero-port 8889 --json-attributes /etc/chef/dna.json --override-runlist aws-parallelcluster-entrypoints::finalize &&
         popd
       } || error_exit 'Failed to run bootstrap recipes. If --norollback was specified, check /var/log/cfn-init.log and /var/log/cloud-init-output.log.'
