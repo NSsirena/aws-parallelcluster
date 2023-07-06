@@ -1,6 +1,16 @@
 Image:
   Os: {{ os }}
   CustomAmi: {{ global_custom_ami }}
+LoginNodes:
+  Pools:
+    - Name: login
+      InstanceType: {{ instance }}
+      Count: 1
+      Networking:
+        SubnetIds:
+          - {{ public_subnet_id }}
+      Ssh:
+        KeyName: {{ key_name }}
 HeadNode:
   InstanceType: {{ instance }}
   Networking:

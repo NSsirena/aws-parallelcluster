@@ -1,5 +1,15 @@
 Image:
   Os: {{ os }}
+LoginNodes:
+  Pools:
+    - Name: login
+      InstanceType: {{ instance }}
+      Count: 1
+      Networking:
+        SubnetIds:
+          - {{ public_subnet_id }}
+      Ssh:
+        KeyName: {{ key_name }}
 CustomS3Bucket: {{ bucket }}
 HeadNode:
   InstanceType: {{ instance }}
