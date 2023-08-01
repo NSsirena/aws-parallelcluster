@@ -827,6 +827,13 @@ def test_ad_integration(
     run_system_analyzer(cluster, scheduler_commands_factory, request)
     run_benchmarks(users[0].remote_command_executor(), users[0].scheduler_commands(), diretory_type=directory_type)
 
+    # With the last update we also added a LoginNode pool
+    # Let's test that AD users can login into a LoginNode and they'll have their home and ssh-key created
+    # With the same behavior we have in the HeadNode
+    login_node_command_executor = RemoteCommandExecutor(cluster, use_login_node=True)
+    for user in users:
+        _check_ssh_key_generation(user, login_node_command_executor, scheduler_commands, True)
+
 
 def _check_ssh_auth(user, expect_success=True):
     try:
