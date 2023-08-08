@@ -79,7 +79,7 @@ def test_slurm(
         compute_node_bootstrap_timeout=compute_node_bootstrap_timeout,
     )
     cluster = clusters_factory(cluster_config, upper_case_cluster_name=True)
-    remote_command_executor = RemoteCommandExecutor(cluster)
+    remote_command_executor = RemoteCommandExecutor(cluster, use_login_node=True)
     clustermgtd_conf_path = _retrieve_clustermgtd_conf_path(remote_command_executor)
     slurm_root_path = _retrieve_slurm_root_path(remote_command_executor)
     slurm_commands = scheduler_commands_factory(remote_command_executor)
@@ -137,7 +137,7 @@ def test_slurm_pmix(pcluster_config_reader, clusters_factory):
     num_computes = 2
     cluster_config = pcluster_config_reader(queue_size=num_computes)
     cluster = clusters_factory(cluster_config)
-    remote_command_executor = RemoteCommandExecutor(cluster)
+    remote_command_executor = RemoteCommandExecutor(cluster, use_login_node=True)
 
     # Ensure the expected PMIx version is listed when running `srun --mpi=list`.
     # Since we're installing PMIx v3.1.5, we expect to see pmix and pmix_v3 in the output.
